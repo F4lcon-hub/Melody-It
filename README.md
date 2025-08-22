@@ -63,15 +63,6 @@ Suporta **beat detection em tempo real**, múltiplos tipos de notas, pontuação
 
 ---
 
-## ⚡ Melhorias Futuras
-
-- Editor de beatmap para criar notas manualmente.  
-- Diferentes skins/temas visuais.  
-- Efeitos sonoros de acerto.  
-- Melhorias no algoritmo de beat detection, incluindo filtragem mais precisa para diferentes instrumentos.  
-
----
-
 ## 🔗 Referências
 
 - [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)  
