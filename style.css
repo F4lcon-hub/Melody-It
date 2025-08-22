@@ -168,6 +168,26 @@ main {
     100% { transform: scale(1.5); opacity: 0; }
 }
 
+/* Sustained Note Tails */
+.note-tail {
+    position: absolute;
+    width: 15px;
+    border-radius: 10px;
+    z-index: 9;
+    opacity: 0.7;
+    transition: background-color 0.1s ease-in-out;
+}
+
+.note-tail.low { background-color: var(--low-note-color); }
+.note-tail.mid { background-color: var(--mid-note-color); }
+.note-tail.high { background-color: var(--high-note-color); }
+
+.note-tail.held {
+    opacity: 1;
+    box-shadow: 0 0 10px #fff, 0 0 20px #fff;
+}
+
+
 /* Trail */
 .trail {
     position: absolute;

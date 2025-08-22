@@ -4,11 +4,16 @@ const difficultySelector = document.getElementById('difficultySelector');
 const playButton = document.getElementById('playButton');
 const pauseButton = document.getElementById('pauseButton');
 const resetButton = document.getElementById('resetButton');
+const scoreDisplay = document.getElementById('score');
+const comboDisplay = document.getElementById('combo');
 
 // --- Game Settings ---
 const NUM_LANES = 4;
 const TARGET_ZONE_BOTTOM_PERCENT = 0.90; // Note must be below this line
 const TARGET_ZONE_TOP_PERCENT = 0.80;    // and above this line
+const SUSTAIN_CHANCE = 0.20; // 20% chance for a note to be a sustained note
+const SUSTAIN_LENGTH_MIN = 200; // pixels
+const SUSTAIN_LENGTH_MAX = 400; // pixels
 const KEY_MAPPING = { '1': 0, '2': 1, '3': 2, '4': 3 };
 
 const DIFFICULTY_SETTINGS = {
@@ -46,6 +51,9 @@ let lastNoteTime = 0;
 let source;
 let animationId;
 let isPaused = false;
+let score = 0;
+let combo = 0;
+const activeHolds = {}; // Tracks which lanes have an active hold
 let noteIdCounter = 0;
 const noteIntervals = new Map();
 
@@ -68,6 +76,11 @@ musicSelector.addEventListener('change', async (e) => {
     const targetLine = document.createElement('div');
     targetLine.id = 'targetLine';
     gameArea.appendChild(targetLine);
+
+    Object.keys(activeHolds).forEach(key => delete activeHolds[key]);
+    score = 0;
+    combo = 0;
+    if(scoreDisplay) updateScoreDisplay();
 
     // Reset buttons and state
     playButton.disabled = true;
@@ -131,6 +144,12 @@ pauseButton.addEventListener('click', () => {
 // 4. Reset Button
 resetButton.addEventListener('click', () => {
     if (audio) {
+        Object.keys(activeHolds).forEach(key => delete activeHolds[key]);
+        // Reset score and combo
+        score = 0;
+        combo = 0;
+        if(scoreDisplay) updateScoreDisplay();
+
         audio.pause();
         audio.currentTime = 0;
     }
@@ -188,20 +207,73 @@ document.addEventListener('keydown', (e) => {
     if (hitNoteElement) {
         const noteId = parseInt(hitNoteElement.dataset.id, 10);
         const interval = noteIntervals.get(noteId);
+        const isSustained = hitNoteElement.dataset.sustain === 'true';
 
-        if (interval) {
-            clearInterval(interval);
-            noteIntervals.delete(noteId);
+        if (isSustained) {
+            const tailElement = document.querySelector(`.note-tail[data-note-id='${noteId}']`);
+            if (tailElement) {
+                activeHolds[targetLane] = { noteId, tailElement };
+                tailElement.classList.add('held');
+            }
+        } else {
+            // It's a regular note, clear its interval immediately
+            if (interval) {
+                clearInterval(interval);
+                noteIntervals.delete(noteId);
+            }
         }
+
+        combo++;
+        score += 100 + (combo * 10); // Score increases with combo
+        updateScoreDisplay();
 
         const noteType = Array.from(hitNoteElement.classList).find(c => ['low', 'mid', 'high'].includes(c));
         createParticles(hitNoteElement.offsetLeft, hitNoteElement.offsetTop, noteType);
+        // Remove the note head, but leave the tail if it's a sustained note
         hitNoteElement.classList.add('hit');
 
         const trail = document.querySelector(`.trail[data-note-id='${noteId}']`);
         if (trail) trail.remove();
 
-        hitNoteElement.addEventListener('animationend', () => hitNoteElement.remove());
+        // For regular notes, remove after animation. For sustained, the keyup handles it.
+        if (!isSustained) {
+            hitNoteElement.addEventListener('animationend', () => hitNoteElement.remove());
+        }
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    if (!KEY_MAPPING.hasOwnProperty(e.key)) {
+        return;
+    }
+
+    const lane = KEY_MAPPING[e.key];
+    if (activeHolds[lane]) {
+        const holdData = activeHolds[lane];
+        const tail = holdData.tailElement;
+        const targetZoneTopPx = gameArea.clientHeight * TARGET_ZONE_TOP_PERCENT;
+        const targetZoneBottomPx = gameArea.clientHeight * TARGET_ZONE_BOTTOM_PERCENT;
+
+        const tailEndPosition = tail.offsetTop + tail.offsetHeight;
+
+        // Check if the end of the tail is in the target zone upon release
+        if (tailEndPosition >= targetZoneTopPx && tailEndPosition <= targetZoneBottomPx) {
+            score += 200; // Bonus for a good sustain release
+            combo++;
+            updateScoreDisplay();
+            createParticles(tail.offsetLeft, tailEndPosition, tail.classList.contains('low') ? 'low' : tail.classList.contains('mid') ? 'mid' : 'high');
+        } else {
+            // Released too early or too late
+            combo = 0;
+            updateScoreDisplay();
+        }
+
+        // Clean up the hold
+        const interval = noteIntervals.get(holdData.noteId);
+        if (interval) clearInterval(interval);
+        noteIntervals.delete(holdData.noteId);
+        tail.remove();
+        delete activeHolds[lane];
     }
 });
 
@@ -240,11 +312,13 @@ function analyze() {
 }
 
 function createNote(type) {
+    const isSustained = Math.random() < SUSTAIN_CHANCE;
     const noteId = noteIdCounter++;
     const lane = Math.floor(Math.random() * NUM_LANES);
 
     const note = document.createElement('div');
     note.classList.add('note', type);
+    if (isSustained) note.dataset.sustain = 'true';
     note.dataset.id = noteId;
     note.dataset.lane = lane;
 
@@ -260,26 +334,70 @@ function createNote(type) {
     trail.style.top = '-60px';
     trail.dataset.noteId = noteId; // Associate trail with note
 
+    let tailElement = null;
+    if (isSustained) {
+        tailElement = document.createElement('div');
+        tailElement.classList.add('note-tail', type);
+        tailElement.dataset.noteId = noteId;
+
+        const noteHeight = 50;
+        const tailWidth = 15;
+        tailElement.style.left = `${initialLeft + (noteWidth / 2) - (tailWidth / 2)}px`;
+        tailElement.style.top = `${-50 + (noteHeight / 2)}px`;
+        tailElement.style.height = `${Math.random() * (SUSTAIN_LENGTH_MAX - SUSTAIN_LENGTH_MIN) + SUSTAIN_LENGTH_MIN}px`;
+        gameArea.appendChild(tailElement);
+    }
+
     gameArea.appendChild(trail);
     gameArea.appendChild(note);
 
     let topPosition = -50;
     const fallInterval = setInterval(() => {
         if (isPaused) return;
-
+        
+        const noteHeight = 50;
         topPosition += 5;
         note.style.top = `${topPosition}px`;
         trail.style.top = `${topPosition - 60}px`;
+        if (tailElement) {
+            tailElement.style.top = `${topPosition + (noteHeight / 2)}px`;
+        }
 
         if (topPosition > gameArea.clientHeight) {
             clearInterval(fallInterval);
+            // Check if the note was a hold that was held too long
+            const heldLane = Object.keys(activeHolds).find(lane => activeHolds[lane].noteId === noteId);
+            if (heldLane) {
+                delete activeHolds[heldLane]; // Clean up active hold
+            }
+
+            // NOTE MISSED: Reset combo
+            combo = 0;
+            updateScoreDisplay();
+
             noteIntervals.delete(noteId); // Clean up map
             if (note.parentNode) note.parentNode.removeChild(note);
             if (trail.parentNode) trail.parentNode.removeChild(trail);
+            if (tailElement && tailElement.parentNode) tailElement.remove();
         }
     }, 20);
 
     noteIntervals.set(noteId, fallInterval);
+}
+
+function updateScoreDisplay() {
+    if (!scoreDisplay || !comboDisplay) return;
+
+    scoreDisplay.textContent = `Score: ${score}`;
+    comboDisplay.textContent = `Combo: ${combo}`;
+
+    // Add a little pop animation to the combo counter
+    if (combo > 0) {
+        comboDisplay.classList.add('combo-pop');
+        setTimeout(() => {
+            comboDisplay.classList.remove('combo-pop');
+        }, 200);
+    }
 }
 
 function createParticles(x, y, type) {
