@@ -209,17 +209,6 @@ main {
     background: linear-gradient(to top, var(--high-note-color), transparent);
 }
 
-/* Particles */
-.particle {
-    position: fixed; /* Use fixed to position relative to viewport */
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: var(--font-color);
-    box-shadow: 0 0 10px var(--font-color);
-    pointer-events: none; /* Particles should not be interactive */
-    z-index: 200;
-}
 
 /* Score and Combo Display */
 #scoreContainer {

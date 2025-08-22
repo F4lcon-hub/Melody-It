@@ -18,11 +18,11 @@ const KEY_MAPPING = { '1': 0, '2': 1, '3': 2, '4': 3 };
 
 const DIFFICULTY_SETTINGS = {
     easy: {
-        NOTE_SPAWN_COOLDOWN: 600,
-        MAX_ACTIVE_NOTES: 8,
-        LOW_NOTE_THRESHOLD: 220,
-        MID_NOTE_THRESHOLD: 200,
-        HIGH_NOTE_THRESHOLD: 180,
+        NOTE_SPAWN_COOLDOWN: 500, // Menor cooldown, mais notas
+        MAX_ACTIVE_NOTES: 9,      // Permite um pouco mais de notas na tela
+        LOW_NOTE_THRESHOLD: 210,  // Ligeiramente mais sensível
+        MID_NOTE_THRESHOLD: 190,
+        HIGH_NOTE_THRESHOLD: 170,
     },
     normal: {
         NOTE_SPAWN_COOLDOWN: 400,
@@ -234,8 +234,6 @@ document.addEventListener('keydown', (e) => {
         updateScoreDisplay();
 
         const noteType = Array.from(hitNoteElement.classList).find(c => ['low', 'mid', 'high'].includes(c));
-        createParticles(hitNoteElement.offsetLeft, hitNoteElement.offsetTop, noteType);
-        // Remove the note head, but leave the tail if it's a sustained note
         hitNoteElement.classList.add('hit');
 
         const trail = document.querySelector(`.trail[data-note-id='${noteId}']`);
@@ -267,7 +265,6 @@ document.addEventListener('keyup', (e) => {
             score += 200; // Bonus for a good sustain release
             combo++;
             updateScoreDisplay();
-            createParticles(tail.offsetLeft, tailEndPosition, tail.classList.contains('low') ? 'low' : tail.classList.contains('mid') ? 'mid' : 'high');
         } else {
             // Released too early or too late
             combo = 0;
@@ -349,8 +346,12 @@ function createNote(type) {
         const noteHeight = 50;
         const tailWidth = 15;
         tailElement.style.left = `${initialLeft + (noteWidth / 2) - (tailWidth / 2)}px`;
-        tailElement.style.top = `${-50 + (noteHeight / 2)}px`;
-        tailElement.style.height = `${Math.random() * (SUSTAIN_LENGTH_MAX - SUSTAIN_LENGTH_MIN) + SUSTAIN_LENGTH_MIN}px`;
+        // Start tail from the top of the note head
+        tailElement.style.top = `${-50}px`;
+        const tailBaseHeight = Math.random() * (SUSTAIN_LENGTH_MAX - SUSTAIN_LENGTH_MIN) + SUSTAIN_LENGTH_MIN;
+        // Add half the note's height to the tail's height to compensate for the change in 'top'.
+        // This ensures the tail's end position remains the same for gameplay purposes.
+        tailElement.style.height = `${tailBaseHeight + (noteHeight / 2)}px`;
         gameArea.appendChild(tailElement);
     }
 
@@ -366,7 +367,8 @@ function createNote(type) {
         note.style.top = `${topPosition}px`;
         trail.style.top = `${topPosition - 60}px`;
         if (tailElement) {
-            tailElement.style.top = `${topPosition + (noteHeight / 2)}px`;
+            // The tail now moves in lock-step with the note head's top position
+            tailElement.style.top = `${topPosition}px`;
         }
 
         if (topPosition > gameArea.clientHeight) {
@@ -403,44 +405,6 @@ function updateScoreDisplay() {
         setTimeout(() => {
             comboDisplay.classList.remove('combo-pop');
         }, 200);
-    }
-}
-
-function createParticles(x, y, type) {
-    const noteColors = {
-        low: 'var(--low-note-color)',
-        mid: 'var(--mid-note-color)',
-        high: 'var(--high-note-color)'
-    };
-    const color = noteColors[type];
-    const gameAreaRect = gameArea.getBoundingClientRect();
-
-    for (let i = 0; i < 20; i++) {
-        const particle = document.createElement('div');
-        particle.classList.add('particle');
-        particle.style.left = `${gameAreaRect.left + x + 25}px`;
-        particle.style.top = `${gameAreaRect.top + y + 25}px`;
-        particle.style.backgroundColor = color;
-        particle.style.boxShadow = `0 0 10px ${color}`;
-
-        const angle = Math.random() * 2 * Math.PI;
-        const velocity = Math.random() * 4 + 1;
-        const vx = Math.cos(angle) * velocity;
-        const vy = Math.sin(angle) * velocity;
-
-        document.body.appendChild(particle);
-
-        let life = 60; // frames
-        function animateParticle() {
-            if (life-- <= 0) {
-                if (particle.parentNode) particle.parentNode.removeChild(particle);
-                return;
-            }
-            particle.style.transform = `translate(${vx * (60 - life)}px, ${vy * (60 - life)}px)`;
-            particle.style.opacity = life / 60;
-            requestAnimationFrame(animateParticle);
-        }
-        animateParticle();
     }
 }
 
