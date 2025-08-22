@@ -41,6 +41,11 @@ musicSelector.addEventListener('change', async (e) => {
     cancelAnimationFrame(animationId);
     gameArea.innerHTML = '';
 
+    // Re-create the target line because innerHTML clears it
+    const targetLine = document.createElement('div');
+    targetLine.id = 'targetLine';
+    gameArea.appendChild(targetLine);
+
     // Reset buttons and state
     playButton.disabled = true;
     pauseButton.disabled = true;
