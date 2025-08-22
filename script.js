@@ -22,14 +22,12 @@ let lastNoteTime = 0;
 let source;
 let animationId;
 let isPaused = false;
-let activeGameNotes = []; // Tracks all notes currently on screen
 
 // --- Event Listeners ---
 
 // 1. Music Selection
 musicSelector.addEventListener('change', async (e) => {
     if (audio) audio.pause();
-    activeGameNotes = [];
     cancelAnimationFrame(animationId);
     gameArea.innerHTML = '';
 
@@ -97,7 +95,6 @@ resetButton.addEventListener('click', () => {
         audio.pause();
         audio.currentTime = 0;
     }
-    activeGameNotes = [];
     cancelAnimationFrame(animationId);
     gameArea.innerHTML = '';
     isPaused = false;
@@ -109,34 +106,6 @@ resetButton.addEventListener('click', () => {
     resetButton.disabled = true;
     musicSelector.disabled = false; // Allow selecting a new song
     musicSelector.value = ''; // Allows re-selecting the same file if needed
-});
-
-// 5. Game Area Click (Event Delegation for notes)
-gameArea.addEventListener('click', (e) => {
-    // We only care about clicks on elements with the 'note' class
-    if (!e.target.classList.contains('note')) {
-        return;
-    }
-
-    const clickedNoteElement = e.target;
-    const noteIndex = activeGameNotes.findIndex(noteData => noteData.element === clickedNoteElement);
-
-    if (noteIndex > -1) {
-        const noteData = activeGameNotes[noteIndex];
-
-        // Remove the note from our active list so it stops moving
-        activeGameNotes.splice(noteIndex, 1);
-
-        // Trigger visual feedback
-        createParticles(noteData.element.offsetLeft, noteData.element.offsetTop, noteData.type);
-        noteData.element.classList.add('hit');
-        noteData.trail.remove();
-
-        // Remove the note element from the DOM after its 'hit' animation finishes
-        noteData.element.addEventListener('animationend', () => {
-            noteData.element.remove();
-        });
-    }
 });
 
 
@@ -153,7 +122,8 @@ function analyze() {
     const now = audioCtx.currentTime * 1000;
 
     // More efficient check using our tracked array instead of querying the DOM
-    if (activeGameNotes.length >= MAX_ACTIVE_NOTES) {
+    const activeNotes = document.getElementsByClassName('note').length;
+    if (activeNotes >= MAX_ACTIVE_NOTES) {
         return;
     }
 
@@ -185,37 +155,39 @@ function createNote(type) {
     trail.style.left = note.style.left;
     trail.style.top = '-60px';
 
+    let fallInterval;
+
+    note.addEventListener('click', () => {
+        clearInterval(fallInterval);
+        createParticles(note.offsetLeft, note.offsetTop, type);
+        note.classList.add('hit');
+        if (trail.parentNode) {
+            trail.parentNode.removeChild(trail);
+        }
+        note.addEventListener('animationend', () => {
+            if (note.parentNode) {
+                note.parentNode.removeChild(note);
+            }
+        });
+    });
+
     gameArea.appendChild(trail);
     gameArea.appendChild(note);
 
-    // Add the new note to our array to be managed by the game loop
-    activeGameNotes.push({
-        element: note,
-        trail: trail,
-        type: type,
-        top: -50
-    });
-}
+    let topPosition = -50;
+    fallInterval = setInterval(() => {
+        if (isPaused) return;
 
-function updateGame() {
-    if (!isPaused) {
-        // Loop through active notes (backwards, to safely remove items)
-        for (let i = activeGameNotes.length - 1; i >= 0; i--) {
-            const noteData = activeGameNotes[i];
-            noteData.top += 5; // Falling speed
-            noteData.element.style.top = `${noteData.top}px`;
-            noteData.trail.style.top = `${noteData.top - 60}px`;
+        topPosition += 5;
+        note.style.top = `${topPosition}px`;
+        trail.style.top = `${topPosition - 60}px`;
 
-            // Remove note if it goes off-screen
-            if (noteData.top > gameArea.clientHeight) {
-                noteData.element.remove();
-                noteData.trail.remove();
-                activeGameNotes.splice(i, 1);
-            }
+        if (topPosition > gameArea.clientHeight) {
+            clearInterval(fallInterval);
+            if (note.parentNode) note.parentNode.removeChild(note);
+            if (trail.parentNode) trail.parentNode.removeChild(trail);
         }
-    }
-    // Keep the loop running
-    requestAnimationFrame(updateGame);
+    }, 20);
 }
 
 function createParticles(x, y, type) {
@@ -261,6 +233,3 @@ function average(array) {
     const sum = array.reduce((a, b) => a + b, 0);
     return sum / array.length;
 }
-
-// Start the main game loop
-updateGame();
