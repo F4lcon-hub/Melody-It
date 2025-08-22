@@ -47,14 +47,10 @@ header h1 {
     align-items: center;
 }
 
-/* Custom File Input */
-input[type="file"] {
-    display: none;
-}
-
-/* Play Button and File Label */
+/* Play Button */
 #playButton,
-label[for="musicSelector"] {
+#pauseButton,
+#resetButton {
     background-color: var(--primary-color);
     color: var(--font-color);
     padding: 0.75rem 1.5rem;
@@ -69,19 +65,30 @@ label[for="musicSelector"] {
 }
 
 #playButton:hover,
-label[for="musicSelector"]:hover {
+#pauseButton:hover,
+#resetButton:hover {
     background-color: #1ed760;
 }
 
 #playButton:active,
-label[for="musicSelector"]:active {
+#pauseButton:active,
+#resetButton:active {
     transform: scale(0.98);
 }
 
-#playButton:disabled {
+#playButton:disabled,
+#pauseButton:disabled,
+#resetButton:disabled {
     background-color: #535353;
     color: #b3b3b3;
     cursor: not-allowed;
+}
+
+#resetButton {
+    background-color: #c0392b; /* A red color for reset/danger */
+}
+#resetButton:hover {
+    background-color: #e74c3c;
 }
 
 /* Main Game Area */
