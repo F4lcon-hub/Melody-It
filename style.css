@@ -1,33 +1,112 @@
-body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  background-color: #121212;
-  color: #fff;
-  font-family: Arial, sans-serif;
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
 }
 
-#ui {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 10;
+/* Layout geral */
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: linear-gradient(135deg, #1f1c2c, #928dab);
+    color: #fff;
 }
 
-#fileInput {
-  margin-bottom: 10px;
+header {
+    padding: 20px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
 }
 
-#scoreContainer {
-  margin-top: 10px;
-  font-size: 18px;
-  font-weight: bold;
+header h1 {
+    margin-bottom: 10px;
 }
 
-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
+main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+#gameArea {
+    width: 80%;
+    height: 80%;
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+/* Notas com efeito Osu e trilha */
+.note {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    position: absolute;
+    top: -60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 0 15px #fff, 0 0 25px inset;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* cores de notas baseadas na frequência */
+.note.low { background: radial-gradient(circle, #ff4b5c, #c70039); }
+.note.mid { background: radial-gradient(circle, #ffd700, #ffa500); }
+.note.high { background: radial-gradient(circle, #00ffff, #008b8b); }
+
+.note:active {
+    transform: scale(0.7);
+    box-shadow: 0 0 25px #fff, 0 0 35px inset;
+}
+
+/* Hit effect */
+.note.hit {
+    animation: hitEffect 0.4s forwards;
+}
+
+@keyframes hitEffect {
+    0% { transform: scale(0.7); opacity: 1; box-shadow: 0 0 25px #fff, 0 0 35px inset; }
+    50% { transform: scale(1.5); opacity: 1; box-shadow: 0 0 50px #fff, 0 0 70px inset; }
+    100% { transform: scale(2); opacity: 0; box-shadow: 0 0 0 #fff, 0 0 0 inset; }
+}
+
+/* Partículas */
+.particle {
+    width: 5px;
+    height: 5px;
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Trilhas de notas */
+.trail {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    pointer-events: none;
+    filter: blur(4px);
+    z-index: -1;
+}
+
+footer {
+    padding: 10px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+    font-size: 14px;
 }

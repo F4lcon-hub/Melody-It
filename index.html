@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mini Osu Debug-Ready</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Osu</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="ui">
-    <input type="file" id="fileInput" accept="audio/*">
-    <audio id="audioPlayer" controls></audio>
-    <div id="scoreContainer">
-      Score: <span id="score">0</span>
-    </div>
-  </div>
-  <canvas id="gameCanvas"></canvas>
+    <header>
+        <h1>Mini Osu</h1>
+        <input type="file" id="musicSelector" accept="audio/*">
+    </header>
 
-  <script src="script.js"></script>
+    <main>
+        <div id="gameArea"></div>
+    </main>
+
+    <footer>
+        <p>Desenvolvido por Falcon | Projeto sem fins lucrativos, apenas para o estudo de JavaScript</p>
+    </footer>
+
+    <script src="script.js"></script>
 </body>
 </html>
