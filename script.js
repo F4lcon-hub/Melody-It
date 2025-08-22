@@ -10,11 +10,20 @@ let score = 0;
 let effects = [];
 
 const NOTE_TYPES = ["circle", "long", "slider"];
-
 let audioCtx, source, analyser, dataArray;
 let lastBeatTime = 0;
 
-// Atualizar tamanho do canvas para responsivo
+// 🎵 Efeitos sonoros
+const hitSound = new Audio("hit.wav");
+hitSound.volume = 0.3;
+const perfectSound = new Audio("perfect.wav");
+perfectSound.volume = 0.4;
+const greatSound = new Audio("great.wav");
+greatSound.volume = 0.35;
+const goodSound = new Audio("good.wav");
+goodSound.volume = 0.3;
+
+// 🔧 Canvas responsivo
 function resizeCanvas() {
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
@@ -24,7 +33,7 @@ resizeCanvas();
 
 // Criar nota
 function createNote(type=null) {
-  const padding = 0.05; // 5% de borda
+  const padding = 0.05;
   const x = Math.random() * (1 - 2*padding) * canvas.width + padding*canvas.width;
   const y = Math.random() * (1 - 2*padding) * canvas.height + padding*canvas.height;
   const appearTime = audioPlayer.currentTime + 0.3;
@@ -41,7 +50,7 @@ function createNote(type=null) {
   });
 }
 
-// Desenhar notas
+// Desenhar notas e efeitos
 function drawNotes() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const now = audioPlayer.currentTime;
@@ -73,7 +82,6 @@ function drawNotes() {
     }
   });
 
-  // Efeitos de acerto
   effects.forEach((fx, index) => {
     ctx.beginPath();
     ctx.arc(fx.x, fx.y, fx.size, 0, Math.PI*2);
@@ -87,7 +95,7 @@ function drawNotes() {
   });
 }
 
-// Loop do jogo
+// Loop principal
 function gameLoop() {
   if (!audioPlayer.paused) {
     drawNotes();
@@ -105,22 +113,24 @@ function checkHit(note, clickX, clickY, now) {
   const diff = Math.abs(now - note.appearTime);
   let timing = "", points = 0;
 
-  if (diff < 0.08) { timing = "Perfect"; points = 300; }
-  else if (diff < 0.15) { timing = "Great"; points = 150; }
-  else if (diff < 0.25) { timing = "Good"; points = 50; }
+  if (diff < 0.08) { timing = "Perfect"; points = 300; perfectSound.currentTime=0; perfectSound.play(); }
+  else if (diff < 0.15) { timing = "Great"; points = 150; greatSound.currentTime=0; greatSound.play(); }
+  else if (diff < 0.25) { timing = "Good"; points = 50; goodSound.currentTime=0; goodSound.play(); }
   else { timing = "Miss"; points = 0; }
 
   if (points > 0) {
     note.clicked = true;
     score += points;
     effects.push({ x: note.x, y: note.y, size: 10, color: "yellow", alpha: 1 });
+    hitSound.currentTime = 0;
+    hitSound.play();
   }
 
   accuracyDisplay.textContent = `Timing: ${timing}`;
   scoreDisplay.textContent = score;
 }
 
-// Obter coordenadas do clique ou toque
+// Coordenadas do clique ou touch
 function getCanvasCoords(e) {
   const rect = canvas.getBoundingClientRect();
   let x, y;
@@ -136,7 +146,7 @@ function getCanvasCoords(e) {
   return { x, y };
 }
 
-// Eventos de clique e toque
+// Eventos de clique e touch
 canvas.addEventListener("click", (e) => {
   const {x,y} = getCanvasCoords(e);
   const now = audioPlayer.currentTime;
@@ -171,20 +181,45 @@ fileInput.addEventListener("change", (e) => {
   dataArray = new Uint8Array(bufferLength);
 });
 
-// Beat Detection (Graves/Kick)
+// Beat Detection avançada por bandas de frequência
 function detectBeats() {
   if (!analyser) return;
 
   analyser.getByteFrequencyData(dataArray);
-  let bassSum = 0;
-  for (let i = 0; i < dataArray.length/8; i++) bassSum += dataArray[i];
-  const bassAvg = bassSum / (dataArray.length/8);
 
   const now = audioPlayer.currentTime;
+  
+  // Divisão em bandas
+  let bass = 0, mid = 0, high = 0;
+  let bassCount = 0, midCount = 0, highCount = 0;
 
-  if (bassAvg > 150 && now - lastBeatTime > 0.2) {
+  for (let i = 0; i < dataArray.length; i++) {
+    const freq = i * (audioCtx.sampleRate/2) / dataArray.length;
+    const val = dataArray[i];
+
+    if (freq >= 20 && freq <= 250) { bass += val; bassCount++; }
+    else if (freq > 250 && freq <= 2000) { mid += val; midCount++; }
+    else if (freq > 2000) { high += val; highCount++; }
+  }
+
+  bass = bassCount ? bass / bassCount : 0;
+  mid  = midCount ? mid / midCount : 0;
+  high = highCount ? high / highCount : 0;
+
+  // Thresholds adaptativos simples
+  const bassThreshold = 150;
+  const midThreshold  = 120;
+  const highThreshold = 100;
+
+  if (bass > bassThreshold && now - lastBeatTime > 0.2) {
     lastBeatTime = now;
-    createNote();
+    createNote("circle"); // graves → círculo
+  } else if (mid > midThreshold && now - lastBeatTime > 0.2) {
+    lastBeatTime = now;
+    createNote("slider"); // médios → slider
+  } else if (high > highThreshold && now - lastBeatTime > 0.15) {
+    lastBeatTime = now;
+    createNote("long"); // agudos → long note
   }
 
   requestAnimationFrame(detectBeats);
