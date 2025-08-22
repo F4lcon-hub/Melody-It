@@ -3,23 +3,13 @@ const audioPlayer = document.getElementById("audioPlayer");
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const scoreDisplay = document.getElementById("score");
-const accuracyDisplay = document.getElementById("accuracy");
-const audioURLInput = document.getElementById("audioURL");
-const loadURLBtn = document.getElementById("loadURL");
 
 let notes = [];
-let score = 0;
 let effects = [];
-
+let score = 0;
 const NOTE_TYPES = ["circle", "long", "slider"];
 let audioCtx, source, analyser, dataArray;
 let lastBeatTime = 0;
-
-// 🎵 Efeitos sonoros
-const hitSound = new Audio("hit.wav"); hitSound.volume = 0.3;
-const perfectSound = new Audio("perfect.wav"); perfectSound.volume = 0.4;
-const greatSound = new Audio("great.wav"); greatSound.volume = 0.35;
-const goodSound = new Audio("good.wav"); goodSound.volume = 0.3;
 
 // 🔧 Canvas responsivo
 function resizeCanvas() {
@@ -29,8 +19,8 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// Criar nota com tempo de vida
-function createNote(type=null) {
+// Criar nota com log
+function createNote(type = null) {
   const padding = 0.05;
   const x = Math.random() * (1 - 2*padding) * canvas.width + padding*canvas.width;
   const y = Math.random() * (1 - 2*padding) * canvas.height + padding*canvas.height;
@@ -42,23 +32,29 @@ function createNote(type=null) {
     type,
     clicked: false,
     spawnTime: audioPlayer.currentTime,
-    lifeTime: 2.0 // duração da nota em segundos
+    lifeTime: 2.0
   });
+  console.log(`Nota criada: tipo=${type}, x=${x.toFixed(2)}, y=${y.toFixed(2)}`);
 }
 
-// Coordenadas do clique ou touch
+// Coordenadas clique/touch
 function getCanvasCoords(e) {
   const rect = canvas.getBoundingClientRect();
   let x, y;
-  if (e.touches) { x = e.touches[0].clientX - rect.left; y = e.touches[0].clientY - rect.top; }
-  else { x = e.clientX - rect.left; y = e.clientY - rect.top; }
+  if (e.touches) {
+    x = e.touches[0].clientX - rect.left;
+    y = e.touches[0].clientY - rect.top;
+  } else {
+    x = e.clientX - rect.left;
+    y = e.clientY - rect.top;
+  }
   x *= canvas.width / rect.width;
   y *= canvas.height / rect.height;
   return { x, y };
 }
 
-// Verifica acerto
-function checkHit(note, clickX, clickY, now) {
+// Checar acerto
+function checkHit(note, clickX, clickY) {
   const dx = clickX - note.x;
   const dy = clickY - note.y;
   const distance = Math.sqrt(dx*dx + dy*dy);
@@ -67,9 +63,9 @@ function checkHit(note, clickX, clickY, now) {
   if (!note.clicked) {
     note.clicked = true;
     score += 100;
-    effects.push({ x: note.x, y: note.y, size: 10, color: "yellow", alpha: 1, text: "Hit" });
-    hitSound.currentTime = 0; hitSound.play();
     scoreDisplay.textContent = score;
+    effects.push({ x: note.x, y: note.y, size: 10, color: "yellow", alpha: 1, text: "Hit" });
+    console.log(`Hit registrado: x=${note.x.toFixed(2)}, y=${note.y.toFixed(2)}`);
   }
 }
 
@@ -78,13 +74,15 @@ function drawNotes() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const now = audioPlayer.currentTime;
 
-  notes.forEach((note, index) => {
+  for (let i = notes.length - 1; i >= 0; i--) {
+    const note = notes[i];
     const elapsed = now - note.spawnTime;
 
     if (elapsed > note.lifeTime) {
       effects.push({ x: note.x, y: note.y, size: 20, color: "red", alpha: 1, text: "Miss" });
-      notes.splice(index, 1);
-      return;
+      console.log(`Miss: tipo=${note.type}, x=${note.x.toFixed(2)}, y=${note.y.toFixed(2)}`);
+      notes.splice(i, 1);
+      continue;
     }
 
     const alpha = 1 - (elapsed / note.lifeTime) * 0.5;
@@ -104,10 +102,10 @@ function drawNotes() {
       ctx.strokeStyle = "magenta";
       ctx.stroke();
     }
-  });
+  }
 
-  // efeitos visuais
-  effects.forEach((fx, idx) => {
+  for (let i = effects.length - 1; i >= 0; i--) {
+    const fx = effects[i];
     ctx.beginPath();
     ctx.arc(fx.x, fx.y, fx.size, 0, Math.PI*2);
     ctx.strokeStyle = fx.color;
@@ -124,8 +122,8 @@ function drawNotes() {
     ctx.globalAlpha = 1;
     fx.size += 2;
     fx.alpha -= 0.03;
-    if (fx.alpha <= 0) effects.splice(idx, 1);
-  });
+    if (fx.alpha <= 0) effects.splice(i, 1);
+  }
 }
 
 // Loop principal
@@ -136,7 +134,7 @@ function gameLoop() {
   }
 }
 
-// Beat Detection avançada por faixas
+// Beat detection simplificada
 function detectBeats() {
   if (!analyser) return;
   analyser.getByteFrequencyData(dataArray);
@@ -157,36 +155,34 @@ function detectBeats() {
   mid = midCount ? mid / midCount : 0;
   high = highCount ? high / highCount : 0;
 
-  const bassThreshold = 150;
-  const midThreshold = 120;
-  const highThreshold = 100;
-
-  if (bass > bassThreshold && now - lastBeatTime > 0.2) { lastBeatTime = now; createNote("circle"); }
-  else if (mid > midThreshold && now - lastBeatTime > 0.2) { lastBeatTime = now; createNote("slider"); }
-  else if (high > highThreshold && now - lastBeatTime > 0.15) { lastBeatTime = now; createNote("long"); }
+  if (bass > 150 && now - lastBeatTime > 0.2) { lastBeatTime = now; createNote("circle"); }
+  else if (mid > 120 && now - lastBeatTime > 0.2) { lastBeatTime = now; createNote("slider"); }
+  else if (high > 100 && now - lastBeatTime > 0.15) { lastBeatTime = now; createNote("long"); }
 
   requestAnimationFrame(detectBeats);
 }
 
-// Eventos de clique/touch
-canvas.addEventListener("click", e => { const {x,y} = getCanvasCoords(e); const now = audioPlayer.currentTime; notes.forEach(n=>checkHit(n,x,y,now)); });
-canvas.addEventListener("touchstart", e => { e.preventDefault(); const {x,y} = getCanvasCoords(e); const now = audioPlayer.currentTime; notes.forEach(n=>checkHit(n,x,y,now)); });
+// Clique/touch
+canvas.addEventListener("click", e => {
+  const {x, y} = getCanvasCoords(e);
+  notes.forEach(n => checkHit(n, x, y));
+});
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  const {x, y} = getCanvasCoords(e);
+  notes.forEach(n => checkHit(n, x, y));
+});
 
-// Upload de arquivo local
+// Upload local
 fileInput.addEventListener("change", e => {
-  const file = e.target.files[0]; if(!file) return;
-  const url = URL.createObjectURL(file); audioPlayer.src = url;
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  audioPlayer.src = url;
   setupAudioContext();
 });
 
-// Carregar via URL
-loadURLBtn.addEventListener("click", () => {
-  const url = audioURLInput.value.trim(); if(!url) return alert("Insira uma URL válida!");
-  audioPlayer.src = url; audioPlayer.load();
-  setupAudioContext();
-});
-
-// Configuração do AudioContext e Analyser
+// Setup AudioContext
 function setupAudioContext() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (source) source.disconnect();
@@ -198,11 +194,13 @@ function setupAudioContext() {
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 }
 
-// Início do jogo ao tocar áudio
+// Início do jogo
 audioPlayer.addEventListener("play", () => {
-  score = 0; scoreDisplay.textContent = score;
-  notes = []; effects = [];
-  // Cria algumas notas iniciais para teste
-  for(let i=0;i<3;i++) createNote();
-  gameLoop(); detectBeats();
+  score = 0;
+  scoreDisplay.textContent = score;
+  notes = [];
+  effects = [];
+  for (let i=0;i<3;i++) createNote(); // notas iniciais
+  gameLoop();
+  detectBeats();
 });

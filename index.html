@@ -2,22 +2,20 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mini Osu Pro Responsivo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Osu Debug-Ready</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>🎵 Mini Osu Pro</h1>
+  <div id="ui">
+    <input type="file" id="fileInput" accept="audio/*">
+    <audio id="audioPlayer" controls></audio>
+    <div id="scoreContainer">
+      Score: <span id="score">0</span>
+    </div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
 
-<input type="file" id="fileInput" accept="audio/*"><br>
-<audio id="audioPlayer" controls></audio>
-
-<canvas id="gameCanvas"></canvas>
-
-<div id="hud">
-  <span id="accuracy">Timing: -</span> | 
-  Pontuação: <span id="score">0</span>
-</div>
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
