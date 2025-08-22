@@ -1,112 +1,176 @@
-/* Reset básico */
+/* General Styles */
+:root {
+    --bg-color: #121212;
+    --primary-color: #1DB954; /* Spotify Green */
+    --secondary-color: #282828;
+    --font-color: #FFFFFF;
+    --low-note-color: #3b82f6; /* Blue */
+    --mid-note-color: #ec4899; /* Pink */
+    --high-note-color: #f59e0b; /* Amber */
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Arial', sans-serif;
 }
 
-/* Layout geral */
 body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--font-color);
+    overflow: hidden; /* Hide scrollbars */
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background: linear-gradient(135deg, #1f1c2c, #928dab);
-    color: #fff;
 }
 
+/* Header and Controls */
 header {
-    padding: 20px;
-    text-align: center;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(5px);
+    background-color: var(--secondary-color);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 100;
 }
 
 header h1 {
-    margin-bottom: 10px;
+    color: var(--primary-color);
+    font-weight: bold;
 }
 
-main {
-    flex: 1;
+.controls {
     display: flex;
-    justify-content: center;
+    gap: 1rem;
     align-items: center;
+}
+
+/* Custom File Input */
+input[type="file"] {
+    display: none;
+}
+
+/* Play Button and File Label */
+#playButton,
+label[for="musicSelector"] {
+    background-color: var(--primary-color);
+    color: var(--font-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+    font-size: 14px;
+}
+
+#playButton:hover,
+label[for="musicSelector"]:hover {
+    background-color: #1ed760;
+}
+
+#playButton:active,
+label[for="musicSelector"]:active {
+    transform: scale(0.98);
+}
+
+#playButton:disabled {
+    background-color: #535353;
+    color: #b3b3b3;
+    cursor: not-allowed;
+}
+
+/* Main Game Area */
+main {
+    flex-grow: 1;
     position: relative;
-    overflow: hidden;
 }
 
 #gameArea {
-    width: 80%;
-    height: 80%;
-    position: relative;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(18, 18, 18, 0.8), rgba(18, 18, 18, 1));
     overflow: hidden;
 }
 
-/* Notas com efeito Osu e trilha */
+/* Notes */
 .note {
+    position: absolute;
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    position: absolute;
-    top: -60px;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.2s ease;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-weight: bold;
-    color: #fff;
-    cursor: pointer;
-    box-shadow: 0 0 15px #fff, 0 0 25px inset;
-    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 10;
 }
 
-/* cores de notas baseadas na frequência */
-.note.low { background: radial-gradient(circle, #ff4b5c, #c70039); }
-.note.mid { background: radial-gradient(circle, #ffd700, #ffa500); }
-.note.high { background: radial-gradient(circle, #00ffff, #008b8b); }
-
-.note:active {
-    transform: scale(0.7);
-    box-shadow: 0 0 25px #fff, 0 0 35px inset;
+.note.low {
+    background-color: var(--low-note-color);
+    box-shadow: 0 0 15px var(--low-note-color), 0 0 25px var(--low-note-color);
 }
 
-/* Hit effect */
+.note.mid {
+    background-color: var(--mid-note-color);
+    box-shadow: 0 0 15px var(--mid-note-color), 0 0 25px var(--mid-note-color);
+}
+
+.note.high {
+    background-color: var(--high-note-color);
+    box-shadow: 0 0 15px var(--high-note-color), 0 0 25px var(--high-note-color);
+}
+
+.note:hover {
+    transform: scale(1.1);
+}
+
 .note.hit {
-    animation: hitEffect 0.4s forwards;
+    animation: hit-animation 0.4s ease-out forwards;
 }
 
-@keyframes hitEffect {
-    0% { transform: scale(0.7); opacity: 1; box-shadow: 0 0 25px #fff, 0 0 35px inset; }
-    50% { transform: scale(1.5); opacity: 1; box-shadow: 0 0 50px #fff, 0 0 70px inset; }
-    100% { transform: scale(2); opacity: 0; box-shadow: 0 0 0 #fff, 0 0 0 inset; }
+@keyframes hit-animation {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
 }
 
-/* Partículas */
-.particle {
-    width: 5px;
-    height: 5px;
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-/* Trilhas de notas */
+/* Trail */
 .trail {
     position: absolute;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.1);
-    pointer-events: none;
-    filter: blur(4px);
-    z-index: -1;
+    width: 4px; /* Thinner trail */
+    height: 60px;
+    opacity: 0.6;
+    border-radius: 2px;
+    transform: translateX(23px); /* Center it on the note */
+    z-index: 9;
 }
 
-footer {
-    padding: 10px;
-    text-align: center;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(5px);
-    font-size: 14px;
+.trail.low {
+    background: linear-gradient(to top, var(--low-note-color), transparent);
+}
+.trail.mid {
+    background: linear-gradient(to top, var(--mid-note-color), transparent);
+}
+.trail.high {
+    background: linear-gradient(to top, var(--high-note-color), transparent);
+}
+
+/* Particles */
+.particle {
+    position: fixed; /* Use fixed to position relative to viewport */
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--font-color);
+    box-shadow: 0 0 10px var(--font-color);
+    pointer-events: none; /* Particles should not be interactive */
+    z-index: 200;
 }
