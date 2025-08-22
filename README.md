@@ -42,10 +42,3 @@ Melody It .js/
 ├── script.js        # Lógica do jogo, análise de áudio e interações
 └── README.md        # Este arquivo
 ```
-
-## 🔮 Possíveis Melhorias Futuras
-
-- Adicionar um ranking de pontuações (usando `localStorage`).
-- Implementar feedback visual para notas perdidas.
-- Criar diferentes "skins" para as notas e a interface.
-- Adicionar suporte para notas longas (sustenidas).

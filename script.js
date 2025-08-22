@@ -155,6 +155,12 @@ resetButton.addEventListener('click', () => {
     }
     cancelAnimationFrame(animationId);
     gameArea.innerHTML = '';
+
+    // Re-create the target line because innerHTML clears it
+    const targetLine = document.createElement('div');
+    targetLine.id = 'targetLine';
+    gameArea.appendChild(targetLine);
+
     isPaused = false;
 
     // Reset button states
