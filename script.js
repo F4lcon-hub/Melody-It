@@ -1,22 +1,41 @@
 const gameArea = document.getElementById('gameArea');
 const musicSelector = document.getElementById('musicSelector');
+const difficultySelector = document.getElementById('difficultySelector');
 const playButton = document.getElementById('playButton');
 const pauseButton = document.getElementById('pauseButton');
 const resetButton = document.getElementById('resetButton');
 
 // --- Game Settings ---
-const NOTE_SPAWN_COOLDOWN = 400; // ms. Cooldown mínimo entre o spawn de notas.
-const MAX_ACTIVE_NOTES = 10; // Número máximo de notas ativas na tela.
 const NUM_LANES = 4;
 const TARGET_ZONE_BOTTOM_PERCENT = 0.90; // Note must be below this line
 const TARGET_ZONE_TOP_PERCENT = 0.80;    // and above this line
 const KEY_MAPPING = { '1': 0, '2': 1, '3': 2, '4': 3 };
 
+const DIFFICULTY_SETTINGS = {
+    easy: {
+        NOTE_SPAWN_COOLDOWN: 600,
+        MAX_ACTIVE_NOTES: 8,
+        LOW_NOTE_THRESHOLD: 220,
+        MID_NOTE_THRESHOLD: 200,
+        HIGH_NOTE_THRESHOLD: 180,
+    },
+    normal: {
+        NOTE_SPAWN_COOLDOWN: 400,
+        MAX_ACTIVE_NOTES: 10,
+        LOW_NOTE_THRESHOLD: 200,
+        MID_NOTE_THRESHOLD: 180,
+        HIGH_NOTE_THRESHOLD: 150,
+    },
+    hard: {
+        NOTE_SPAWN_COOLDOWN: 250,
+        MAX_ACTIVE_NOTES: 14,
+        LOW_NOTE_THRESHOLD: 160,
+        MID_NOTE_THRESHOLD: 140,
+        HIGH_NOTE_THRESHOLD: 120,
+    }
+};
 
-// --- Sensitivity Settings ---
-const LOW_NOTE_THRESHOLD = 200; // Limiar para notas graves
-const MID_NOTE_THRESHOLD = 180; // Limiar para notas médias
-const HIGH_NOTE_THRESHOLD = 150; // Limiar para notas agudas
+let currentDifficultySettings = DIFFICULTY_SETTINGS.normal;
 
 // --- Audio & Game State Variables ---
 let audio;
@@ -29,6 +48,10 @@ let animationId;
 let isPaused = false;
 let noteIdCounter = 0;
 const noteIntervals = new Map();
+
+difficultySelector.addEventListener('change', (e) => {
+    currentDifficultySettings = DIFFICULTY_SETTINGS[e.target.value];
+});
 
 // --- Event Listeners ---
 
@@ -82,6 +105,7 @@ playButton.addEventListener('click', () => {
     startAudioAnalysis();
     playButton.disabled = true;
     pauseButton.disabled = false;
+    difficultySelector.disabled = true;
     musicSelector.disabled = true; // Disable changing music while playing
 });
 
@@ -119,6 +143,7 @@ resetButton.addEventListener('click', () => {
     pauseButton.disabled = true;
     pauseButton.textContent = 'Pausar';
     resetButton.disabled = true;
+    difficultySelector.disabled = false;
     musicSelector.disabled = false; // Allow selecting a new song
     musicSelector.value = ''; // Allows re-selecting the same file if needed
 });
@@ -194,7 +219,7 @@ function analyze() {
 
     // More efficient check using our tracked array instead of querying the DOM
     const activeNotes = document.getElementsByClassName('note').length;
-    if (activeNotes >= MAX_ACTIVE_NOTES) {
+    if (activeNotes >= currentDifficultySettings.MAX_ACTIVE_NOTES) {
         return;
     }
 
@@ -202,13 +227,13 @@ function analyze() {
     const mid = average(dataArray.slice(20, 60));
     const high = average(dataArray.slice(60, dataArray.length));
 
-    if (low > LOW_NOTE_THRESHOLD && now - lastNoteTime > NOTE_SPAWN_COOLDOWN) {
+    if (low > currentDifficultySettings.LOW_NOTE_THRESHOLD && now - lastNoteTime > currentDifficultySettings.NOTE_SPAWN_COOLDOWN) {
         createNote('low');
         lastNoteTime = now;
-    } else if (mid > MID_NOTE_THRESHOLD && now - lastNoteTime > NOTE_SPAWN_COOLDOWN) {
+    } else if (mid > currentDifficultySettings.MID_NOTE_THRESHOLD && now - lastNoteTime > currentDifficultySettings.NOTE_SPAWN_COOLDOWN) {
         createNote('mid');
         lastNoteTime = now;
-    } else if (high > HIGH_NOTE_THRESHOLD && now - lastNoteTime > NOTE_SPAWN_COOLDOWN) {
+    } else if (high > currentDifficultySettings.HIGH_NOTE_THRESHOLD && now - lastNoteTime > currentDifficultySettings.NOTE_SPAWN_COOLDOWN) {
         createNote('high');
         lastNoteTime = now;
     }
