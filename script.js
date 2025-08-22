@@ -7,6 +7,11 @@ const resetButton = document.getElementById('resetButton');
 // --- Game Settings ---
 const NOTE_SPAWN_COOLDOWN = 400; // ms. Cooldown mínimo entre o spawn de notas.
 const MAX_ACTIVE_NOTES = 10; // Número máximo de notas ativas na tela.
+const NUM_LANES = 4;
+const TARGET_ZONE_BOTTOM_PERCENT = 0.90; // Note must be below this line
+const TARGET_ZONE_TOP_PERCENT = 0.80;    // and above this line
+const KEY_MAPPING = { '1': 0, '2': 1, '3': 2, '4': 3 };
+
 
 // --- Sensitivity Settings ---
 const LOW_NOTE_THRESHOLD = 200; // Limiar para notas graves
@@ -22,11 +27,16 @@ let lastNoteTime = 0;
 let source;
 let animationId;
 let isPaused = false;
+let noteIdCounter = 0;
+const noteIntervals = new Map();
 
 // --- Event Listeners ---
 
 // 1. Music Selection
 musicSelector.addEventListener('change', async (e) => {
+    noteIntervals.forEach(interval => clearInterval(interval));
+    noteIntervals.clear();
+
     if (audio) audio.pause();
     cancelAnimationFrame(animationId);
     gameArea.innerHTML = '';
@@ -108,6 +118,62 @@ resetButton.addEventListener('click', () => {
     musicSelector.value = ''; // Allows re-selecting the same file if needed
 });
 
+// 5. Keyboard Input Handler
+document.addEventListener('keydown', (e) => {
+    // Ignore if game is not running or the key is not for the game
+    if (isPaused || !audioCtx || !KEY_MAPPING.hasOwnProperty(e.key)) {
+        return;
+    }
+
+    const targetLane = KEY_MAPPING[e.key];
+    const targetZoneTopPx = gameArea.clientHeight * TARGET_ZONE_TOP_PERCENT;
+    const targetZoneBottomPx = gameArea.clientHeight * TARGET_ZONE_BOTTOM_PERCENT;
+
+    // Visual feedback on the target line
+    const targetLine = document.getElementById('targetLine');
+    if (targetLine) {
+        targetLine.classList.add('target-hit');
+        // Remove the class after the animation to allow it to be re-added
+        setTimeout(() => targetLine.classList.remove('target-hit'), 100);
+    }
+
+    let hitNoteElement = null;
+    const notesInLane = document.querySelectorAll(`.note[data-lane='${targetLane}']`);
+
+    // Find the note that is lowest on the screen (closest to the target) within the zone
+    let lowestNote = null;
+    let lowestTop = -1;
+
+    for (const note of notesInLane) {
+        const noteTop = note.offsetTop;
+        if (noteTop >= targetZoneTopPx && noteTop <= targetZoneBottomPx) {
+            if (noteTop > lowestTop) {
+                lowestTop = noteTop;
+                lowestNote = note;
+            }
+        }
+    }
+    hitNoteElement = lowestNote;
+
+    if (hitNoteElement) {
+        const noteId = parseInt(hitNoteElement.dataset.id, 10);
+        const interval = noteIntervals.get(noteId);
+
+        if (interval) {
+            clearInterval(interval);
+            noteIntervals.delete(noteId);
+        }
+
+        const noteType = Array.from(hitNoteElement.classList).find(c => ['low', 'mid', 'high'].includes(c));
+        createParticles(hitNoteElement.offsetLeft, hitNoteElement.offsetTop, noteType);
+        hitNoteElement.classList.add('hit');
+
+        const trail = document.querySelector(`.trail[data-note-id='${noteId}']`);
+        if (trail) trail.remove();
+
+        hitNoteElement.addEventListener('animationend', () => hitNoteElement.remove());
+    }
+});
 
 // --- Core Game Logic ---
 
@@ -144,9 +210,17 @@ function analyze() {
 }
 
 function createNote(type) {
+    const noteId = noteIdCounter++;
+    const lane = Math.floor(Math.random() * NUM_LANES);
+
     const note = document.createElement('div');
     note.classList.add('note', type);
-    const initialLeft = Math.random() * (gameArea.clientWidth - 50);
+    note.dataset.id = noteId;
+    note.dataset.lane = lane;
+
+    const laneWidth = gameArea.clientWidth / NUM_LANES;
+    const noteWidth = 50; // Should match CSS
+    const initialLeft = (lane * laneWidth) + (laneWidth / 2) - (noteWidth / 2);
     note.style.left = `${initialLeft}px`;
     note.style.top = '-50px';
 
@@ -154,28 +228,13 @@ function createNote(type) {
     trail.classList.add('trail', type);
     trail.style.left = note.style.left;
     trail.style.top = '-60px';
-
-    let fallInterval;
-
-    note.addEventListener('click', () => {
-        clearInterval(fallInterval);
-        createParticles(note.offsetLeft, note.offsetTop, type);
-        note.classList.add('hit');
-        if (trail.parentNode) {
-            trail.parentNode.removeChild(trail);
-        }
-        note.addEventListener('animationend', () => {
-            if (note.parentNode) {
-                note.parentNode.removeChild(note);
-            }
-        });
-    });
+    trail.dataset.noteId = noteId; // Associate trail with note
 
     gameArea.appendChild(trail);
     gameArea.appendChild(note);
 
     let topPosition = -50;
-    fallInterval = setInterval(() => {
+    const fallInterval = setInterval(() => {
         if (isPaused) return;
 
         topPosition += 5;
@@ -184,10 +243,13 @@ function createNote(type) {
 
         if (topPosition > gameArea.clientHeight) {
             clearInterval(fallInterval);
+            noteIntervals.delete(noteId); // Clean up map
             if (note.parentNode) note.parentNode.removeChild(note);
             if (trail.parentNode) trail.parentNode.removeChild(trail);
         }
     }, 20);
+
+    noteIntervals.set(noteId, fallInterval);
 }
 
 function createParticles(x, y, type) {

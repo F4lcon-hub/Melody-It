@@ -105,6 +105,29 @@ main {
     height: 100%;
     background: linear-gradient(to bottom, rgba(18, 18, 18, 0.8), rgba(18, 18, 18, 1));
     overflow: hidden;
+    /* Draw lane separators using gradients */
+    background-image:
+        linear-gradient(to right, transparent 24.9%, rgba(255,255,255,0.1) 25%, transparent 25.1%),
+        linear-gradient(to right, transparent 49.9%, rgba(255,255,255,0.1) 50%, transparent 50.1%),
+        linear-gradient(to right, transparent 74.9%, rgba(255,255,255,0.1) 75%, transparent 75.1%);
+}
+
+#targetLine {
+    position: absolute;
+    bottom: 10%; /* Corresponds to the target zone */
+    left: 0;
+    right: 0;
+    height: 5px;
+    background-color: var(--primary-color);
+    box-shadow: 0 0 15px var(--primary-color);
+    z-index: 5;
+    transition: transform 0.1s ease-out, background-color 0.1s ease-out;
+}
+
+/* Add a visual feedback for key presses on the target line */
+.target-hit {
+    transform: scaleY(2.5);
+    background-color: #fff;
 }
 
 /* Notes */
