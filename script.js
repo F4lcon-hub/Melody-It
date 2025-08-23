@@ -1,12 +1,10 @@
 const gameArea = document.getElementById('gameArea');
 const musicSelector = document.getElementById('musicSelector');
-const difficultySelector = document.getElementById('difficultySelector');
 const playButton = document.getElementById('playButton');
 const pauseButton = document.getElementById('pauseButton');
 const resetButton = document.getElementById('resetButton');
 const scoreDisplay = document.getElementById('score');
 
-const volumeSlider = document.getElementById('volumeSlider');
 const comboDisplay = document.getElementById('combo');
 
 // --- Game Settings ---
@@ -18,31 +16,12 @@ const SUSTAIN_LENGTH_MIN = 200; // pixels
 const SUSTAIN_LENGTH_MAX = 400; // pixels
 const KEY_MAPPING = { '1': 0, '2': 1, '3': 2, '4': 3 };
 
-const DIFFICULTY_SETTINGS = {
-    easy: {
-        NOTE_SPAWN_COOLDOWN: 500, // Menor cooldown, mais notas
-        MAX_ACTIVE_NOTES: 9,      // Permite um pouco mais de notas na tela
-        LOW_NOTE_THRESHOLD: 210,  // Ligeiramente mais sensível
-        MID_NOTE_THRESHOLD: 190,
-        HIGH_NOTE_THRESHOLD: 170,
-    },
-    normal: {
-        NOTE_SPAWN_COOLDOWN: 400,
-        MAX_ACTIVE_NOTES: 10,
-        LOW_NOTE_THRESHOLD: 200,
-        MID_NOTE_THRESHOLD: 180,
-        HIGH_NOTE_THRESHOLD: 150,
-    },
-    hard: {
-        NOTE_SPAWN_COOLDOWN: 250,
-        MAX_ACTIVE_NOTES: 14,
-        LOW_NOTE_THRESHOLD: 160,
-        MID_NOTE_THRESHOLD: 140,
-        HIGH_NOTE_THRESHOLD: 120,
-    }
-};
-
-let currentDifficultySettings = DIFFICULTY_SETTINGS.normal;
+// --- Sensitivity & Difficulty Settings (Hardcoded to Normal) ---
+const NOTE_SPAWN_COOLDOWN = 400;
+const MAX_ACTIVE_NOTES = 10;
+const LOW_NOTE_THRESHOLD = 200;
+const MID_NOTE_THRESHOLD = 180;
+const HIGH_NOTE_THRESHOLD = 150;
 
 // --- Audio & Game State Variables ---
 let audio;
@@ -58,16 +37,6 @@ let combo = 0;
 const activeHolds = {}; // Tracks which lanes have an active hold
 let noteIdCounter = 0;
 const noteIntervals = new Map();
-
-difficultySelector.addEventListener('change', (e) => {
-    currentDifficultySettings = DIFFICULTY_SETTINGS[e.target.value];
-});
-
-volumeSlider.addEventListener('input', (e) => {
-    if (audio) {
-        audio.volume = e.target.value / 100;
-    }
-});
 
 // --- Event Listeners ---
 
@@ -103,7 +72,6 @@ musicSelector.addEventListener('change', async (e) => {
     }
 
     audio = new Audio(URL.createObjectURL(file));
-    audio.volume = volumeSlider.value / 100;
     audio.crossOrigin = "anonymous";
 
     // Setup Web Audio API
@@ -127,7 +95,6 @@ playButton.addEventListener('click', () => {
     startAudioAnalysis();
     playButton.disabled = true;
     pauseButton.disabled = false;
-    difficultySelector.disabled = true;
     musicSelector.disabled = true; // Disable changing music while playing
 });
 
@@ -161,6 +128,7 @@ resetButton.addEventListener('click', () => {
 
         audio.pause();
         audio.currentTime = 0;
+        audio = null;
     }
     cancelAnimationFrame(animationId);
     gameArea.innerHTML = '';
@@ -177,7 +145,6 @@ resetButton.addEventListener('click', () => {
     pauseButton.disabled = true;
     pauseButton.textContent = 'Pausar';
     resetButton.disabled = true;
-    difficultySelector.disabled = false;
     musicSelector.disabled = false; // Allow selecting a new song
     musicSelector.value = ''; // Allows re-selecting the same file if needed
 });
@@ -196,9 +163,10 @@ document.addEventListener('keydown', (e) => {
     // Visual feedback on the target line
     const targetLine = document.getElementById('targetLine');
     if (targetLine) {
-        targetLine.classList.add('target-hit');
+        const hitClass = `target-hit-${targetLane}`;
+        targetLine.classList.add(hitClass);
         // Remove the class after the animation to allow it to be re-added
-        setTimeout(() => targetLine.classList.remove('target-hit'), 100);
+        setTimeout(() => targetLine.classList.remove(hitClass), 100);
     }
 
     let hitNoteElement = null;
@@ -242,16 +210,16 @@ document.addEventListener('keydown', (e) => {
         score += 100 + (combo * 10); // Score increases with combo
         updateScoreDisplay();
 
-        const noteType = Array.from(hitNoteElement.classList).find(c => ['low', 'mid', 'high'].includes(c));
-        hitNoteElement.classList.add('hit');
-
         const trail = document.querySelector(`.trail[data-note-id='${noteId}']`);
         if (trail) trail.remove();
 
-        // For regular notes, remove after animation. For sustained, the keyup handles it.
-        if (!isSustained) {
-            hitNoteElement.addEventListener('animationend', () => hitNoteElement.remove());
-        }
+        hitNoteElement.classList.add('hit');
+        // Always remove the note head after its hit animation to prevent memory leaks
+        hitNoteElement.addEventListener('animationend', () => {
+            if (hitNoteElement.parentNode) {
+                hitNoteElement.remove();
+            }
+        });
     }
 });
 
@@ -263,6 +231,14 @@ document.addEventListener('keyup', (e) => {
     const lane = KEY_MAPPING[e.key];
     if (activeHolds[lane]) {
         const holdData = activeHolds[lane];
+
+        // Defensive check: If the tail element was already removed (e.g., by a miss),
+        // just clean up the stale hold state and exit. This prevents errors.
+        if (!holdData.tailElement || !holdData.tailElement.parentNode) {
+            delete activeHolds[lane];
+            return;
+        }
+
         const tail = holdData.tailElement;
         const targetZoneTopPx = gameArea.clientHeight * TARGET_ZONE_TOP_PERCENT;
         const targetZoneBottomPx = gameArea.clientHeight * TARGET_ZONE_BOTTOM_PERCENT;
@@ -303,23 +279,34 @@ function analyze() {
 
     // More efficient check using our tracked array instead of querying the DOM
     const activeNotes = document.getElementsByClassName('note').length;
-    if (activeNotes >= currentDifficultySettings.MAX_ACTIVE_NOTES) {
+    if (activeNotes >= MAX_ACTIVE_NOTES) {
         return;
     }
 
-    const low = average(dataArray.slice(0, 20));
-    const mid = average(dataArray.slice(20, 60));
-    const high = average(dataArray.slice(60, dataArray.length));
+    // Only proceed if the main cooldown has passed
+    if (now - lastNoteTime > NOTE_SPAWN_COOLDOWN) {
+        const low = average(dataArray.slice(0, 20));
+        const mid = average(dataArray.slice(20, 60));
+        const high = average(dataArray.slice(60, dataArray.length));
 
-    if (low > currentDifficultySettings.LOW_NOTE_THRESHOLD && now - lastNoteTime > currentDifficultySettings.NOTE_SPAWN_COOLDOWN) {
-        createNote('low');
-        lastNoteTime = now;
-    } else if (mid > currentDifficultySettings.MID_NOTE_THRESHOLD && now - lastNoteTime > currentDifficultySettings.NOTE_SPAWN_COOLDOWN) {
-        createNote('mid');
-        lastNoteTime = now;
-    } else if (high > currentDifficultySettings.HIGH_NOTE_THRESHOLD && now - lastNoteTime > currentDifficultySettings.NOTE_SPAWN_COOLDOWN) {
-        createNote('high');
-        lastNoteTime = now;
+        let noteCreated = false;
+        // Use separate 'if's to allow for chords
+        if (low > LOW_NOTE_THRESHOLD) {
+            createNote('low');
+            noteCreated = true;
+        }
+        if (mid > MID_NOTE_THRESHOLD) {
+            createNote('mid');
+            noteCreated = true;
+        }
+        if (high > HIGH_NOTE_THRESHOLD) {
+            createNote('high');
+            noteCreated = true;
+        }
+
+        if (noteCreated) {
+            lastNoteTime = now;
+        }
     }
 }
 
@@ -329,7 +316,7 @@ function createNote(type) {
     const lane = Math.floor(Math.random() * NUM_LANES);
 
     const note = document.createElement('div');
-    note.classList.add('note', type);
+    note.classList.add('note', `note-lane-${lane}`);
     if (isSustained) note.dataset.sustain = 'true';
     note.dataset.id = noteId;
     note.dataset.lane = lane;
@@ -341,26 +328,27 @@ function createNote(type) {
     note.style.top = '-50px';
 
     const trail = document.createElement('div');
-    trail.classList.add('trail', type);
+    trail.classList.add('trail', `trail-lane-${lane}`);
     trail.style.left = note.style.left;
     trail.style.top = '-60px';
     trail.dataset.noteId = noteId; // Associate trail with note
 
     let tailElement = null;
+    let tailHeight = 0; // Declare here for the interval closure
+
     if (isSustained) {
         tailElement = document.createElement('div');
-        tailElement.classList.add('note-tail', type);
+        tailElement.classList.add('note-tail', `tail-lane-${lane}`);
         tailElement.dataset.noteId = noteId;
 
         const noteHeight = 50;
+        tailHeight = Math.random() * (SUSTAIN_LENGTH_MAX - SUSTAIN_LENGTH_MIN) + SUSTAIN_LENGTH_MIN;
+        tailElement.style.height = `${tailHeight}px`;
+
         const tailWidth = 15;
         tailElement.style.left = `${initialLeft + (noteWidth / 2) - (tailWidth / 2)}px`;
-        // Start tail from the top of the note head
-        tailElement.style.top = `${-50}px`;
-        const tailBaseHeight = Math.random() * (SUSTAIN_LENGTH_MAX - SUSTAIN_LENGTH_MIN) + SUSTAIN_LENGTH_MIN;
-        // Add half the note's height to the tail's height to compensate for the change in 'top'.
-        // This ensures the tail's end position remains the same for gameplay purposes.
-        tailElement.style.height = `${tailBaseHeight + (noteHeight / 2)}px`;
+        // Position the tail so its bottom is at the note's vertical center (extending upwards)
+        tailElement.style.top = `${-50 + (noteHeight / 2) - tailHeight}px`;
         gameArea.appendChild(tailElement);
     }
 
@@ -376,8 +364,8 @@ function createNote(type) {
         note.style.top = `${topPosition}px`;
         trail.style.top = `${topPosition - 60}px`;
         if (tailElement) {
-            // The tail now moves in lock-step with the note head's top position
-            tailElement.style.top = `${topPosition}px`;
+            // The tail moves with the head, positioned above it
+            tailElement.style.top = `${topPosition + (noteHeight / 2) - tailHeight}px`;
         }
 
         if (topPosition > gameArea.clientHeight) {

@@ -4,9 +4,14 @@
     --primary-color: #1DB954; /* Spotify Green */
     --secondary-color: #282828;
     --font-color: #FFFFFF;
-    --low-note-color: #3b82f6; /* Blue */
-    --mid-note-color: #ec4899; /* Pink */
-    --high-note-color: #f59e0b; /* Amber */
+    --lane0-color: #3b82f6; /* Blue */
+    --lane1-color: #ef4444; /* Red */
+    --lane2-color: #22c55e; /* Green */
+    --lane3-color: #f59e0b; /* Amber/Yellow */
+    --lane0-held-color: #93c5fd; /* Light Blue */
+    --lane1-held-color: #fca5a5; /* Light Red */
+    --lane2-held-color: #86efac; /* Light Green */
+    --lane3-held-color: #fcd34d; /* Light Yellow */
 }
 
 * {
@@ -119,17 +124,19 @@ main {
     left: 0;
     right: 0;
     height: 5px;
-    background-color: var(--primary-color);
-    box-shadow: 0 0 15px var(--primary-color);
+    background-color: var(--font-color); /* Changed to white for better visibility */
+    box-shadow: 0 0 15px var(--font-color);
     z-index: 5;
     transition: transform 0.1s ease-out, background-color 0.1s ease-out;
 }
 
-/* Add a visual feedback for key presses on the target line */
-.target-hit {
-    transform: scaleY(2.5);
-    background-color: #fff;
-}
+/* Target Line Hit Feedback */
+.target-hit-0 { transform: scaleY(2.5); background-color: var(--lane0-color); box-shadow: 0 0 15px var(--lane0-color); }
+.target-hit-1 { transform: scaleY(2.5); background-color: var(--lane1-color); box-shadow: 0 0 15px var(--lane1-color); }
+.target-hit-2 { transform: scaleY(2.5); background-color: var(--lane2-color); box-shadow: 0 0 15px var(--lane2-color); }
+.target-hit-3 { transform: scaleY(2.5); background-color: var(--lane3-color); box-shadow: 0 0 15px var(--lane3-color); }
+
+
 
 /* Notes */
 .note {
@@ -144,20 +151,11 @@ main {
     z-index: 10;
 }
 
-.note.low {
-    background-color: var(--low-note-color);
-    box-shadow: 0 0 15px var(--low-note-color), 0 0 25px var(--low-note-color);
-}
-
-.note.mid {
-    background-color: var(--mid-note-color);
-    box-shadow: 0 0 15px var(--mid-note-color), 0 0 25px var(--mid-note-color);
-}
-
-.note.high {
-    background-color: var(--high-note-color);
-    box-shadow: 0 0 15px var(--high-note-color), 0 0 25px var(--high-note-color);
-}
+/* Note Colors by Lane */
+.note-lane-0 { background-color: var(--lane0-color); box-shadow: 0 0 15px var(--lane0-color), 0 0 25px var(--lane0-color); }
+.note-lane-1 { background-color: var(--lane1-color); box-shadow: 0 0 15px var(--lane1-color), 0 0 25px var(--lane1-color); }
+.note-lane-2 { background-color: var(--lane2-color); box-shadow: 0 0 15px var(--lane2-color), 0 0 25px var(--lane2-color); }
+.note-lane-3 { background-color: var(--lane3-color); box-shadow: 0 0 15px var(--lane3-color), 0 0 25px var(--lane3-color); }
 
 .note.hit {
     animation: hit-animation 0.4s ease-out forwards;
@@ -178,15 +176,20 @@ main {
     transition: background-color 0.1s ease-in-out;
 }
 
-.note-tail.low { background-color: var(--low-note-color); }
-.note-tail.mid { background-color: var(--mid-note-color); }
-.note-tail.high { background-color: var(--high-note-color); }
-
-.note-tail.held {
+/* Sustained Note Tail Colors by Lane */
+.tail-lane-0 { background-color: var(--lane0-color); }
+.tail-lane-1 { background-color: var(--lane1-color); }
+.tail-lane-2 { background-color: var(--lane2-color); }
+.tail-lane-3 { background-color: var(--lane3-color); }
+/* Held State for Sustained Notes */
+.note-tail.held  {
     opacity: 1;
-    box-shadow: 0 0 10px #fff, 0 0 20px #fff;
 }
 
+.note-tail.held.tail-lane-0 { background-color: var(--lane0-held-color); box-shadow: 0 0 10px var(--lane0-held-color); }
+.note-tail.held.tail-lane-1 { background-color: var(--lane1-held-color); box-shadow: 0 0 10px var(--lane1-held-color); }
+.note-tail.held.tail-lane-2 { background-color: var(--lane2-held-color); box-shadow: 0 0 10px var(--lane2-held-color); }
+.note-tail.held.tail-lane-3 { background-color: var(--lane3-held-color); box-shadow: 0 0 10px var(--lane3-held-color); }
 
 /* Trail */
 .trail {
@@ -199,27 +202,11 @@ main {
     z-index: 9;
 }
 
-.trail.low {
-    background: linear-gradient(to top, var(--low-note-color), transparent);
-}
-.trail.mid {
-    background: linear-gradient(to top, var(--mid-note-color), transparent);
-}
-.trail.high {
-    background: linear-gradient(to top, var(--high-note-color), transparent);
-}
-
-/* Particles */
-.particle {
-    position: fixed; /* Use fixed to position relative to viewport */
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: var(--font-color);
-    box-shadow: 0 0 10px var(--font-color);
-    pointer-events: none; /* Particles should not be interactive */
-    z-index: 200;
-}
+/* Trail Colors by Lane */
+.trail-lane-0 { background: linear-gradient(to top, var(--lane0-color), transparent); }
+.trail-lane-1 { background: linear-gradient(to top, var(--lane1-color), transparent); }
+.trail-lane-2 { background: linear-gradient(to top, var(--lane2-color), transparent); }
+.trail-lane-3 { background: linear-gradient(to top, var(--lane3-color), transparent); }
 
 /* Score and Combo Display */
 #scoreContainer {
@@ -248,79 +235,4 @@ main {
     0% { transform: scale(1); }
     50% { transform: scale(1.2); }
     100% { transform: scale(1); }
-}
-
-/* Difficulty Selector */
-#difficultySelector {
-    background-color: var(--secondary-color);
-    color: var(--font-color);
-    border: 1px solid var(--primary-color);
-    padding: 0.65rem 1rem;
-    border-radius: 50px;
-    cursor: pointer;
-    font-weight: bold;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%231DB954%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.4-5.4-13z%27%2F%3E%3C%2Fsvg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    background-size: .65em auto;
-    font-size: 14px;
-    padding-right: 2.5rem; /* Make space for the arrow */
-}
-
-#difficultySelector:disabled {
-    background-color: #535353;
-    color: #b3b3b3;
-    cursor: not-allowed;
-    border-color: #535353;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%23b3b3b3%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.4-5.4-13z%27%2F%3E%3C%2Fsvg%3E");
-}
-
-/* Volume Slider */
-#volumeContainer {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-input[type=range] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 120px;
-    background: transparent;
-    cursor: pointer;
-}
-
-/* Chrome, Safari, Opera, and Edge */
-input[type=range]::-webkit-slider-runnable-track {
-    background: var(--secondary-color);
-    height: 8px;
-    border-radius: 4px;
-}
-
-input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    margin-top: -5px; /* Centers thumb on the track */
-    background-color: var(--primary-color);
-    height: 18px;
-    width: 18px;
-    border-radius: 50%;
-}
-
-/* Firefox */
-input[type=range]::-moz-range-track {
-    background: var(--secondary-color);
-    height: 8px;
-    border-radius: 4px;
-}
-
-input[type=range]::-moz-range-thumb {
-    background-color: var(--primary-color);
-    height: 18px;
-    width: 18px;
-    border-radius: 50%;
-    border: none;
 }
