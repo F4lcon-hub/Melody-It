@@ -209,6 +209,17 @@ main {
     background: linear-gradient(to top, var(--high-note-color), transparent);
 }
 
+/* Particles */
+.particle {
+    position: fixed; /* Use fixed to position relative to viewport */
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--font-color);
+    box-shadow: 0 0 10px var(--font-color);
+    pointer-events: none; /* Particles should not be interactive */
+    z-index: 200;
+}
 
 /* Score and Combo Display */
 #scoreContainer {
@@ -265,4 +276,51 @@ main {
     cursor: not-allowed;
     border-color: #535353;
     background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%23b3b3b3%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.4-5.4-13z%27%2F%3E%3C%2Fsvg%3E");
+}
+
+/* Volume Slider */
+#volumeContainer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 120px;
+    background: transparent;
+    cursor: pointer;
+}
+
+/* Chrome, Safari, Opera, and Edge */
+input[type=range]::-webkit-slider-runnable-track {
+    background: var(--secondary-color);
+    height: 8px;
+    border-radius: 4px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -5px; /* Centers thumb on the track */
+    background-color: var(--primary-color);
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+}
+
+/* Firefox */
+input[type=range]::-moz-range-track {
+    background: var(--secondary-color);
+    height: 8px;
+    border-radius: 4px;
+}
+
+input[type=range]::-moz-range-thumb {
+    background-color: var(--primary-color);
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    border: none;
 }

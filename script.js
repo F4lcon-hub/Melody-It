@@ -5,6 +5,8 @@ const playButton = document.getElementById('playButton');
 const pauseButton = document.getElementById('pauseButton');
 const resetButton = document.getElementById('resetButton');
 const scoreDisplay = document.getElementById('score');
+
+const volumeSlider = document.getElementById('volumeSlider');
 const comboDisplay = document.getElementById('combo');
 
 // --- Game Settings ---
@@ -61,6 +63,12 @@ difficultySelector.addEventListener('change', (e) => {
     currentDifficultySettings = DIFFICULTY_SETTINGS[e.target.value];
 });
 
+volumeSlider.addEventListener('input', (e) => {
+    if (audio) {
+        audio.volume = e.target.value / 100;
+    }
+});
+
 // --- Event Listeners ---
 
 // 1. Music Selection
@@ -95,6 +103,7 @@ musicSelector.addEventListener('change', async (e) => {
     }
 
     audio = new Audio(URL.createObjectURL(file));
+    audio.volume = volumeSlider.value / 100;
     audio.crossOrigin = "anonymous";
 
     // Setup Web Audio API
